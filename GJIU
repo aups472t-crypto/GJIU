@@ -1,0 +1,155 @@
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+-- ลบ UI เก่าถ้าเคยรันไปแล้ว
+if CoreGui:FindFirstChild("VoxelUtilityUI") then
+	CoreGui.VoxelUtilityUI:Destroy()
+end
+
+-- สถานะการทำงาน
+local espEnabled = false
+
+-- ฟังก์ชันจัดการ ESP
+local function applyHighlight(character)
+	if not character then return end
+	local existing = character:FindFirstChild("VoxelESP_Highlight")
+	if espEnabled then
+		if not existing then
+			local highlight = Instance.new("Highlight")
+			highlight.Name = "VoxelESP_Highlight"
+			highlight.FillColor = Color3.fromRGB(255, 60, 60)
+			highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+			highlight.FillTransparency = 0.5
+			highlight.OutlineTransparency = 0
+			highlight.Adornee = character
+			highlight.Parent = character
+		end
+	else
+		if existing then
+			existing:Destroy()
+		end
+	end
+end
+
+local function updateAllESP()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			applyHighlight(player.Character)
+		end
+	end
+end
+
+-- เชื่อมต่อเมื่อมีผู้เล่นใหม่หรือเกิดใหม่
+local function setupPlayer(player)
+	if player == LocalPlayer then return end
+	player.CharacterAdded:Connect(function(char)
+		char:WaitForChild("HumanoidRootPart", 10)
+		applyHighlight(char)
+	end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	setupPlayer(player)
+end
+Players.PlayerAdded:Connect(setupPlayer)
+
+-- สร้างหน้าต่าง UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VoxelUtilityUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 145)
+MainFrame.Position = UDim2.new(0.5, -110, 0.25, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- ลากย้ายหน้าต่างบนมือถือได้
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+-- แถบหัวข้อ
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -30, 0, 32)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Voxel Front Helper"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+-- ปุ่มปิด UI
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 26, 0, 26)
+CloseBtn.Position = UDim2.new(1, -29, 0, 3)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 13
+CloseBtn.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+-- ปุ่มเปิด/ปิด ESP
+local EspBtn = Instance.new("TextButton")
+EspBtn.Size = UDim2.new(1, -20, 0, 40)
+EspBtn.Position = UDim2.new(0, 10, 0, 42)
+EspBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+EspBtn.Text = "ESP ตำแหน่งศัตรู: ปิด"
+EspBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+EspBtn.Font = Enum.Font.GothamSemibold
+EspBtn.TextSize = 13
+EspBtn.Parent = MainFrame
+
+local EspCorner = Instance.new("UICorner")
+EspCorner.CornerRadius = UDim.new(0, 6)
+EspCorner.Parent = EspBtn
+
+-- ปุ่มรีเฟรช ESP (เผื่อคนเกิดใหม่แล้วกรอบไม่ขึ้น)
+local RefreshBtn = Instance.new("TextButton")
+RefreshBtn.Size = UDim2.new(1, -20, 0, 36)
+RefreshBtn.Position = UDim2.new(0, 10, 0, 92)
+RefreshBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 180)
+RefreshBtn.Text = "รีเฟรช ESP"
+RefreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RefreshBtn.Font = Enum.Font.GothamSemibold
+RefreshBtn.TextSize = 13
+RefreshBtn.Parent = MainFrame
+
+local RefreshCorner = Instance.new("UICorner")
+RefreshCorner.CornerRadius = UDim.new(0, 6)
+RefreshCorner.Parent = RefreshBtn
+
+-- การทำงานของปุ่มต่างๆ
+EspBtn.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	if espEnabled then
+		EspBtn.Text = "ESP ตำแหน่งศัตรู: เปิด"
+		EspBtn.BackgroundColor3 = Color3.fromRGB(45, 160, 80)
+	else
+		EspBtn.Text = "ESP ตำแหน่งศัตรู: ปิด"
+		EspBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+	end
+	updateAllESP()
+end)
+
+RefreshBtn.MouseButton1Click:Connect(function()
+	updateAllESP()
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+	espEnabled = false
+	updateAllESP()
+	ScreenGui:Destroy()
+end)
